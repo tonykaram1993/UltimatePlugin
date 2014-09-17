@@ -1,0 +1,29 @@
+UltimatePlugin Installation Instructions:
+-----------------------------------------
+
+First of all, I would like to thank you for using UltimatePlugin. You have made a good choice!
+Now for the installation instructions, please look below.
+Note: UltimatePlugin now supports amxmodx 1.8.2 and amxmodx 1.8.3. While it will work on both,
+using this plugin on amxmodx 1.8.3 is gonna be faster, you will not notice the difference.
+
+In this .zip file you will find everything you need to make the plugin work on your server. You only
+need to do two small steps.
+1. Download a copy of UltimatePlugin.amxx and UltimatePluginMenu.amxx from the alliedmods. To do
+   so, click on 'Get Plugin' for both files (UltimatePlugin.sma and UltimatePluginMenu.sma)
+   Note: if you have amxmodx 1.8.3, you will need to compile the plugin locally because the web
+   compiler is on 1.8.2 at the writing of this post.
+2. Place those two files in the 'addons/amxmodx/plugins' folder.
+3. Extract and copy all the files to their respective folders. In the .zip file, everything is in
+   the correct folder, so all you have to do is merge to the folders together, and you are done.
+4. Last but not least, go to the following file: 'addons/amxmodx/configs/plugins.ini'. Now look for
+   the following line: 'adminchat.ammx'. After you locate that line, add directly ABOVE it the following:
+   'UltimatePlugin.sma'. Then add at the very bottom of the file the following: 'UltimatePluginMenu.amxx'
+   Note: do NOT include the quotes when writing them.
+   
+Now the plugins is installed. For the changes to take effect, you will need to restart your server, or 
+simply change the map.
+
+
+ATTENTION: you might ask, why are there 3 language files? The answer is simple, some players do not
+like greeen chat messages, therefore they have the opportunity to change that in the source code.
+If '#define GREEN_CHAT 1' is commented, on the prefix is set in green color, else it is colored.
