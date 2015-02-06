@@ -297,10 +297,15 @@
 			x fixed invalid buffer size from replace( ) function
 			* cfg file need to be updated
 			
-	v1.5.0:		+ added selectivity feature
+	v1.5.0	beta:	+ added selectivity feature
 			* fixed function naming of prethink from post to pre
+			
+	v1.5.1	beta:	x fixed invalid ham hook error, cause the handle was not checked for validity
+			x possible fix for index out of bounds in ClCmd_JoinTeam function
+			x fixed incorrectly formatted string
+			x reading the .ini file returned wrong results (it was reading empty lines)
 */
-#define PLUGIN_VERSION		"1.4.4"
+#define PLUGIN_VERSION		"1.5.1b"
 
 /* Includes */
 #include < amxmodx >
@@ -351,8 +356,12 @@
 /*
 	Set this to your maximum number of players your server can
 	hold.
+	
+	Note: this is not needed in amxmodx 1.8.3 and above.
 */
-#define MAX_PLAYERS		32
+#if AMXX_VERSION_NUM < 183
+	#define MAX_PLAYERS		32
+#endif
 
 /*
 	If you wish not to have green message on your server, you
@@ -413,6 +422,7 @@
 	the line.
 */
 #define REVIVE_ALIVE		1
+//#define REVIVE_WEAPON		1
 
 /*
 	Below are the default, minimun and maximum values that the
@@ -486,7 +496,7 @@
 	would get if they have been transfered by an admin.
 */
 #define CS_T_MODEL		CS_T_LEET
-#define CS_CT_MODEL		CS_CT_URBAN
+#define CS_CT_MODEL		CS_CT_GSG9
 
 /*
 	This is to ensure the admin executing amx_search 
@@ -1151,6 +1161,11 @@ public plugin_init( ) {
 }
 
 public plugin_natives( ) {
+	/*
+		Natives to be used by other plugins. What this basically means,
+		that other plugins can use some features from this plugin so
+		they are not duplicated.
+	*/
 	register_library( "API_UltimatePlugin" );
 	
 	register_native( "up_get_user_unammo",		"API_GetUserUnAmmo" );
@@ -1191,6 +1206,11 @@ public plugin_natives( ) {
 }
 
 public plugin_cfg( ) {
+	/*
+		Check the version of the plugin with the latest version on
+		www.alliedmods.net, to see whether the plugin is up to date 
+		or it needs updating.
+	*/
 	VersionCheckerSocket( );
 }
 
@@ -1230,6 +1250,11 @@ public client_connect( iPlayerID ) {
 	g_iPlayerTeam[ iPlayerID ] = CS_TEAM_UNASSIGNED;
 	g_iPlayerTime[ iPlayerID ] = 0;
 	
+	/*
+		Fixe the bug where connecting players sometimes 
+		are shown on a team but always dead. This puts 
+		them on the spectator team.
+	*/
 	if( g_iPluginStatus[ SHOWN_DEAD_SPEC_FIX ] ) {
 		message_begin( MSG_ALL, g_msgTeamInfo );
 		write_byte( iPlayerID );
@@ -1237,6 +1262,9 @@ public client_connect( iPlayerID ) {
 		message_end( );
 	}
 	
+	/*
+		Play a random song while player is at loading screen.
+	*/
 	if( g_iPluginStatus[ LOADING_SONGS ] ) {
 		RandomMusic( iPlayerID );
 	}
@@ -1246,6 +1274,11 @@ public client_disconnect( iPlayerID ) {
 	ClearBit( g_bitIsConnected,     iPlayerID );
 	ClearBit( g_bitIsAlive,         iPlayerID );
 	
+	/*
+		Remove player's gag flags. That way, joining players 
+		with the same ID as the disconnected player are not 
+		gagged as well.
+	*/
 	if( g_iPlayerGagFlags[ iPlayerID ] ) {
 		if( task_exists( TASK_UNGAG + iPlayerID ) ) {
 			remove_task( TASK_UNGAG + iPlayerID );
@@ -1263,6 +1296,9 @@ public client_disconnect( iPlayerID ) {
 	get_players( iPlayers, iNum );
 	
 	if( g_iPluginStatus[ AFK_MANAGER ] || g_iPluginStatus[ AFK_BOMB_MANAGER ] ) {
+		/*
+			There are no more players on the server, so stop the AFK check.
+		*/
 		if( !iNum ) {
 			if( task_exists( TASK_AFK_CHECK ) ) {
 				remove_task( TASK_AFK_CHECK );
@@ -1276,6 +1312,9 @@ public client_disconnect( iPlayerID ) {
 		}
 	}
 	
+	/*
+		Tell admins that the gagged player has disconnected.
+	*/
 	if( g_iPluginStatus[ ADMIN_GAG ] ) {
 		for( iLoop = 0; iLoop < iNum; iLoop++ ) {
 			iTempID = iPlayers[ iLoop ];
@@ -1286,6 +1325,9 @@ public client_disconnect( iPlayerID ) {
 		}
 	}
 	
+	/*
+		Announce that player has left the server.
+	*/
 	if( g_iPluginStatus[ JOIN_LEAVE_ANNOUNCEMENTS ] ) {
 		switch( g_iJoinleaveAnnouncements ) {
 			case 1: PlayerDisconnected( strPlayerName );
@@ -1297,7 +1339,10 @@ public client_disconnect( iPlayerID ) {
 }
 
 public client_authorized( iPlayerID ) {
-	
+	/*
+		Player has joined. Check if the AFK checks are there, if not then 
+		start it.
+	*/
 	if( g_iPluginStatus[ AFK_MANAGER ] && !task_exists( TASK_AFK_CHECK ) ) {
 		set_task( float( AFK_FREQUENCY ), "Task_AFK_Check",	TASK_AFK_CHECK,		_, _, "b" );
 	}
@@ -1321,6 +1366,9 @@ public client_putinserver( iPlayerID ) {
 }
 
 public client_infochanged( iPlayerID ) {
+	/*
+		Player is trying to change his name. Check if he is gagged and block it.
+	*/
 	if( CheckBit( g_bitCvarStatus, CVAR_GAG_NAME ) && g_iPlayerGagFlags[ iPlayerID ] ) {
 		new strNewName[ 32 ], strOldName[ 32 ];
 		get_user_info( iPlayerID, "name", strNewName, 31 );
@@ -1336,6 +1384,10 @@ public client_infochanged( iPlayerID ) {
 }
 
 public client_command( iPlayerID ) {
+	/*
+		This is mainly for the No Rcon plugin. Allows you to issue rcon commands 
+		by simply typing them directly.
+	*/
 	if( g_iPluginStatus[ NO_MORE_RCON ] || !access( iPlayerID, ADMIN_CVAR ) ) {
 		return PLUGIN_CONTINUE;
 	}
@@ -1547,6 +1599,12 @@ public ClCmd_JoinTeam( iPlayerID ) {
 	read_argv( 1, strTeam, 1 );
 	iTeam = str_to_num( strTeam ) - 1;
 	
+	if( iTeam < 0 || iTeam > 5 ) {
+		engclient_cmd( iPlayerID, "chooseteam" );
+
+		return PLUGIN_HANDLED;
+	}
+	
 	if( g_bBlockTeamJoin[ iTeam ] && CheckBit( g_bitIsConnected, iPlayerID ) ) {
 		engclient_cmd( iPlayerID, "chooseteam" );
 		
@@ -1627,7 +1685,7 @@ public ClCmd_SayHandler( iPlayerID ) {
 		return PLUGIN_HANDLED;
 	}
 	
-	#if defined GREEN_CHAT	
+	#if defined GREEN_CHAT
 	if( g_iPluginStatus[ ADMIN_COLOR_CHAT ] && access( iPlayerID, ADMIN_CHAT ) ) {
 		if( strTemp[ 0 ] == '#' ) {
 			new strMessage[ 192 ];
@@ -4884,8 +4942,17 @@ public ConCmd_Swap( iPlayerID, iLevel, iCid ) {
 		user_silentkill( iTarget1 );
 	}
 	
-	cs_set_user_team( iTarget1, iTeam2 );
-	cs_set_user_team( iTarget2, iTeam1 );
+	if( iTeam1 == CS_TEAM_CT ) {
+		cs_set_user_team( iTarget2, iTeam1, CS_CT_MODEL );
+	} else if( iTeam1 == CS_TEAM_T ) {
+		cs_set_user_team( iTarget2, iTeam1, CS_T_MODEL );
+	}
+	
+	if( iTeam2 == CS_TEAM_CT ) {
+		cs_set_user_team( iTarget1, iTeam2, CS_CT_MODEL );
+	} else if( iTeam2 == CS_TEAM_T ) {
+		cs_set_user_team( iTarget1, iTeam2, CS_T_MODEL );
+	}
 	
 	if( CheckBit( g_bitIsAlive, iTarget1 ) ) {
 		ExecuteHamB( Ham_CS_RoundRespawn, iTarget1 );
@@ -4936,11 +5003,11 @@ public ConCmd_SwapTeams( iPlayerID, iLevel, iCid ) {
 		
 		switch( cs_get_user_team( iTempID ) ) {
 			case CS_TEAM_CT: {
-				cs_set_user_team( iTempID, CS_TEAM_T );
+				cs_set_user_team( iTempID, CS_TEAM_T, CS_T_MODEL );
 			}
 			
 			case CS_TEAM_T: {
-				cs_set_user_team( iTempID, CS_TEAM_CT );
+				cs_set_user_team( iTempID, CS_TEAM_CT, CS_CT_MODEL );
 			}
 		}
 		
@@ -5166,7 +5233,7 @@ public ConCmd_Glow( iPlayerID, iLevel, iCid ) {
 			case 2:	client_print_color( 0, iPlayerID, "^4%s^1 %L %L", g_strPluginPrefix, LANG_PLAYER, "SHOW_ACTIVITY_2", strAdminName, LANG_PLAYER, "GLOW_TEAM", strTeam, bName ? strColorName : strColors );
 		}
 		
-		log_amx( "Admin %s (%s) glowed %s players %s.", strAdminName, strTeam, bName ? strColorName : strColors );
+		log_amx( "Admin %s (%s) glowed %s players %s.", strAdminName, strAdminAuthID, strTeam, bName ? strColorName : strColors );
 	} else {
 		new iTarget = cmd_target( iPlayerID, strTarget, CMDTARGET_OBEY_IMMUNITY | CMDTARGET_ALLOW_SELF | CMDTARGET_ONLY_ALIVE );
 		
@@ -6260,6 +6327,7 @@ public Task_PlayerRevived( iTaskID ) {
 	
 	StripPlayerWeapons( iPlayerID );
 	
+	#if defined REVIVE_WEAPON
 	switch( cs_get_user_team( iPlayerID ) ) {
 		case CS_TEAM_CT: {
 			give_item( iPlayerID, "weapon_usp" );
@@ -6280,6 +6348,7 @@ public Task_PlayerRevived( iTaskID ) {
 			set_user_rendering( iPlayerID, kRenderFxGlowShell, 255, 255, 255, kRenderNormal, 5 );
 		}
 	}
+	#endif
 	
 	if( g_iSpawnHealth != SPAWN_DEF_HEALTH ) {
 		set_user_health( iPlayerID, g_iSpawnHealth );
@@ -6557,8 +6626,13 @@ public Task_Countdown_RestartRound( ) {
 		case 0: {
 			server_cmd( "sv_restartround 1" );
 			
-			DisableHamForward( g_hamTouchArmouryEntity );
-			DisableHamForward( g_hamTouchWeaponBox );
+			if( g_hamTouchArmouryEntity ) {
+				DisableHamForward( g_hamTouchArmouryEntity );
+			}
+			
+			if( g_hamTouchWeaponBox ) {
+				DisableHamForward( g_hamTouchWeaponBox );
+			}
 		}
 	}
 }
@@ -7480,14 +7554,20 @@ ReadPluginStatus( ) {
 		while( !feof( iFile ) ) {
 			fgets( iFile, strData, 255 );
 			
-			switch( strData[ 0 ] ) {
-				case ';', ' ', '/', '^n': continue;
+			if( isalpha( strData[ 0 ] ) ) {
+				strtok( strData, strLeft, 31, strRight, 31, ' ', 1 );
+				
+				g_iPluginStatus[ iCounter++ ] = str_to_num( strRight );
+			}
+			
+			/*switch( strData[ 0 ] ) {
+				case ';', ' ', '/', '^n', '^0', '': continue;
 				default: {
 					strtok( strData, strLeft, 31, strRight, 31, ' ', 1 );
 					
 					g_iPluginStatus[ iCounter++ ] = str_to_num( strRight );
 				}
-			}
+			}*/
 		}
 		
 		fclose( iFile );
