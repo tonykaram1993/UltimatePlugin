@@ -304,8 +304,10 @@
 			x possible fix for index out of bounds in ClCmd_JoinTeam function
 			x fixed incorrectly formatted string
 			x reading the .ini file returned wrong results (it was reading empty lines)
+			
+	v1.5.2	beta:	x fixed incorrect number of parameters in ConCmd_IP
 */
-#define PLUGIN_VERSION		"1.5.1b"
+#define PLUGIN_VERSION		"1.5.2b"
 
 /* Includes */
 #include < amxmodx >
@@ -4593,7 +4595,7 @@ public ConCmd_IP( iPlayerID, iLevel, iCid ) {
 			console_print( iPlayerID, "#%i %s %s", get_user_userid( iTempID ), strPlayerIP, strPlayerName );
 		}
 		
-		console_print( iPlayerID, "%L", iPlayerID, "IP_LIST_ALL_DOWN" );
+		console_print( iPlayerID, "%L", iPlayerID, "IP_LIST_ALL_DOWN", iNum );
 		
 		return PLUGIN_HANDLED;
 	}
