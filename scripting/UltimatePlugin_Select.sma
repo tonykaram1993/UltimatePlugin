@@ -306,8 +306,10 @@
 			x reading the .ini file returned wrong results (it was reading empty lines)
 			
 	v1.5.2	beta:	x fixed incorrect number of parameters in ConCmd_IP
+	
+	v1.5.3	beta:	x fixed incorrect number of parameters in ConCmd_Extend
 */
-#define PLUGIN_VERSION		"1.5.2b"
+#define PLUGIN_VERSION		"1.5.3b"
 
 /* Includes */
 #include < amxmodx >
@@ -5319,7 +5321,7 @@ public ConCmd_Extend( iPlayerID, iLevel, iCid ) {
 	iTime = str_to_num( strTime );
 	
 	if( iTime < MIN_EXTEND || iTime > MAX_EXTEND ) {
-		console_print( iPlayerID, "%s %L", g_strPluginPrefix, iPlayerID, "ERROR_EXTEND_BETWEEN" );
+		console_print( iPlayerID, "%s %L", g_strPluginPrefix, iPlayerID, "ERROR_EXTEND_BETWEEN", MIN_EXTEND, MAX_EXTEND );
 		
 		return PLUGIN_HANDLED;
 	}
