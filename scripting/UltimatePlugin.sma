@@ -588,9 +588,9 @@ enum ( ) {
 #endif
 
 /* Constants */
-new const g_strPluginName[ ]		= "UltimatePlugin";
-new const g_strPluginVersion[ ]		= PLUGIN_VERSION;
-new const g_strPluginAuthor[ ]		= "tonykaram1993";
+new const g_strPluginName[ ]    = "UltimatePlugin";
+new const g_strPluginVersion[ ] = PLUGIN_VERSION;
+new const g_strPluginAuthor[ ]  = "tonykaram1993";
 
 new const g_strSprites[ SPRITE_MAX ][ ] = {
 	"sprites/muzzleflash.spr",
